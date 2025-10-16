@@ -1,12 +1,13 @@
-## Simulación Robots vs Monstruos
+# Simulación Robots vs Monstruos
 
 
-## Ejecucion en terminal
+- Ejecucion en terminal
 
 ```sh
 python main.py
 ```
 
+```txt
 . = libre, # = vacía, R = robot, M = monstruo
 
 VISTA XY (Frontal)    VISTA XZ (Lateral)    VISTA YZ (Superior)
@@ -23,9 +24,9 @@ VISTA XY (Frontal)    VISTA XZ (Lateral)    VISTA YZ (Superior)
 
 Robots activos: 3 | Monstruos activos: 5
 ============================================================
+```
 
-
-## Ejecucion en 3d
+- Ejecucion en 3d
 
 ```sh
 3d.py
