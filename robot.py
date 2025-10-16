@@ -6,6 +6,13 @@ Representa un robot inteligente con sensores, effectores y memoria.
 
 from typing import List, Tuple, Dict
 
+# Códigos de colores ANSI para terminal
+class Colores:
+    RESET = '\033[0m'
+    ROJO = '\033[91m'      # Robots
+    AMARILLO = '\033[93m'  # Advertencias
+    CYAN = '\033[96m'      # Información
+
 
 class Robot:
     """
@@ -22,10 +29,12 @@ class Robot:
         
         Args:
             posicion_inicial: Tupla (x, y, z) con la posición inicial
-            orientacion_inicial: Vector de orientación (ej: (1, 0, 0) para adelante en X)
+            orientacion_inicial: Vector que define la orientación del robot (hacia dónde "mira" su frente)
+                                 Ej: (1, 0, 0) significa que su frente apunta hacia +X
         """
         self.posicion = posicion_inicial
-        self.orientacion = orientacion_inicial
+        self.orientacion = orientacion_inicial  # Hacia dónde "mira" el robot
+        self.direccion_movimiento = orientacion_inicial  # Dirección de movimiento actual
         self.memoria: List[Tuple[int, Dict, str]] = []  # (tiempo, percepción, acción)
         self.choco_pared_anterior = False  # Para el Vacuscopio
         
@@ -41,8 +50,9 @@ class Robot:
         """
         percepcion = {}
         
-        # Giroscopio: orientación actual
+        # Giroscopio: orientación actual (hacia dónde mira el robot)
         percepcion['orientacion'] = self.orientacion
+        percepcion['direccion_movimiento'] = self.direccion_movimiento
         
         # Monstroscopio: detectar monstruos en las 5 celdas adyacentes (excepto atrás)
         percepcion['monstruo_cerca'] = self._detectar_monstruos(entorno)
@@ -60,7 +70,7 @@ class Robot:
     
     def _detectar_monstruos(self, entorno) -> bool:
         """
-        Detecta si hay monstruos en las 5 celdas adyacentes (excepto atrás).
+        Detecta si hay monstruos en las 5 celdas adyacentes (excepto atrás según orientación).
         
         Args:
             entorno: Instancia del entorno
@@ -71,17 +81,17 @@ class Robot:
         x, y, z = self.posicion
         ox, oy, oz = self.orientacion
         
-        # Calcular dirección hacia atrás
+        # Calcular dirección hacia atrás según la orientación del robot
         atras = (-ox, -oy, -oz)
         
-        # Las 6 direcciones adyacentes
+        # Las 6 direcciones adyacentes en el sistema global
         direcciones = [
-            (1, 0, 0), (-1, 0, 0),
-            (0, 1, 0), (0, -1, 0),
-            (0, 0, 1), (0, 0, -1)
+            (1, 0, 0), (-1, 0, 0),  # +X, -X
+            (0, 1, 0), (0, -1, 0),  # +Y, -Y
+            (0, 0, 1), (0, 0, -1)   # +Z, -Z
         ]
         
-        # Verificar las 5 direcciones (excluyendo atrás)
+        # Verificar las 5 direcciones (excluyendo atrás según orientación)
         for dx, dy, dz in direcciones:
             if (dx, dy, dz) != atras:
                 nueva_pos = (x + dx, y + dy, z + dz)
@@ -104,7 +114,7 @@ class Robot:
     
     def _detectar_robot_enfrente(self, entorno) -> bool:
         """
-        Detecta si hay un robot en la celda de enfrente.
+        Detecta si hay un robot en la celda de enfrente según la orientación del robot.
         
         Args:
             entorno: Instancia del entorno
@@ -115,6 +125,7 @@ class Robot:
         x, y, z = self.posicion
         ox, oy, oz = self.orientacion
         
+        # La posición enfrente según la orientación del robot
         posicion_enfrente = (x + ox, y + oy, z + oz)
         
         if entorno.es_valida(posicion_enfrente):
@@ -135,44 +146,46 @@ class Robot:
         x, y, z = self.posicion
         ox, oy, oz = self.orientacion
         
+        # Calcular nueva posición según la orientación del robot
         nueva_posicion = (x + ox, y + oy, z + oz)
         
         # Intentar moverse
         if entorno.mover_entidad(self, nueva_posicion):
             self.choco_pared_anterior = False
-            print(f"Robot se movió de {self.posicion} a {nueva_posicion}")
+            print(f"{Colores.ROJO}Robot se movió de {self.posicion} a {nueva_posicion}{Colores.RESET}")
             return True
         else:
             # No se pudo mover, activar Vacuscopio
             self.choco_pared_anterior = True
-            print(f"Robot no pudo moverse hacia {nueva_posicion}")
+            print(f"{Colores.AMARILLO}Robot no pudo moverse hacia {nueva_posicion}{Colores.RESET}")
             return False
     
     def rotar(self, eje: str, angulo: int):
         """
-        Rota el robot en el eje especificado.
+        Rota el robot en el eje especificado, cambiando su orientación.
         
         Args:
-            eje: Eje de rotación ('x', 'y', 'z')
+            eje: Eje de rotación ('x', 'y', 'z') - eje global alrededor del cual rotar
             angulo: Ángulo de rotación en grados (90, 180, 270)
         """
         ox, oy, oz = self.orientacion
         
-        if eje == 'x':
+        # Rotaciones alrededor de ejes globales
+        if eje == 'x':  # Rotación alrededor del eje X global
             if angulo == 90:
                 self.orientacion = (ox, -oz, oy)
             elif angulo == 180:
                 self.orientacion = (ox, -oy, -oz)
             elif angulo == 270:
                 self.orientacion = (ox, oz, -oy)
-        elif eje == 'y':
+        elif eje == 'y':  # Rotación alrededor del eje Y global
             if angulo == 90:
                 self.orientacion = (oz, oy, -ox)
             elif angulo == 180:
                 self.orientacion = (-ox, oy, -oz)
             elif angulo == 270:
                 self.orientacion = (-oz, oy, ox)
-        elif eje == 'z':
+        elif eje == 'z':  # Rotación alrededor del eje Z global
             if angulo == 90:
                 self.orientacion = (-oy, ox, oz)
             elif angulo == 180:
@@ -180,7 +193,44 @@ class Robot:
             elif angulo == 270:
                 self.orientacion = (oy, -ox, oz)
         
-        print(f"Robot rotó en eje {eje} {angulo}°. Nueva orientación: {self.orientacion}")
+        # Actualizar también la dirección de movimiento para que coincida con la orientación
+        self.direccion_movimiento = self.orientacion
+        
+        print(f"{Colores.CYAN}Robot rotó en eje {eje} {angulo}°. Nueva orientación: {self.orientacion}{Colores.RESET}")
+    
+    def cambiar_direccion_movimiento(self, nueva_direccion: Tuple[int, int, int]):
+        """
+        Cambia la dirección de movimiento sin cambiar la orientación del robot.
+        
+        Args:
+            nueva_direccion: Nueva dirección de movimiento (x, y, z)
+        """
+        self.direccion_movimiento = nueva_direccion
+        print(f"{Colores.CYAN}Robot cambió dirección de movimiento a: {nueva_direccion}{Colores.RESET}")
+    
+    def obtener_orientacion_texto(self) -> str:
+        """
+        Obtiene una representación textual de la orientación del robot.
+        
+        Returns:
+            String que describe hacia dónde mira el robot
+        """
+        ox, oy, oz = self.orientacion
+        
+        if ox == 1:
+            return "mira hacia +X"
+        elif ox == -1:
+            return "mira hacia -X"
+        elif oy == 1:
+            return "mira hacia +Y"
+        elif oy == -1:
+            return "mira hacia -Y"
+        elif oz == 1:
+            return "mira hacia +Z"
+        elif oz == -1:
+            return "mira hacia -Z"
+        else:
+            return f"orientación compleja: {self.orientacion}"
     
     def usar_vacuumator(self, entorno):
         """
@@ -202,7 +252,7 @@ class Robot:
         # Autodestruirse
         entorno.eliminar_entidad(self)
         
-        print(f"Robot usó vacuumator en {self.posicion} y se autodestruyó")
+        print(f"{Colores.ROJO}Robot usó vacuumator en {self.posicion} y se autodestruyó{Colores.RESET}")
     
     def decidir_y_actuar(self, entorno, tiempo_actual: int):
         """
@@ -225,30 +275,33 @@ class Robot:
         
         # 2. Si detecta monstruo cerca, intentar acercarse
         elif percepcion_actual['monstruo_cerca']:
-            # Intentar moverse hacia adelante
+            # Intentar moverse hacia adelante según su orientación
             if self.mover_adelante(entorno):
                 accion_ejecutada = "mover_adelante"
             else:
                 # Si no puede moverse, rotar para buscar otra dirección
+                # Rotar alrededor del eje Y para cambiar de dirección de movimiento
                 self.rotar('y', 90)
                 accion_ejecutada = "rotar"
         
         # 3. Si hay robot enfrente, comunicarse y decidir conjuntamente
         elif percepcion_actual['robot_enfrente']:
-            # Lógica simple: rotar para evitar conflicto
+            # Lógica simple: rotar alrededor del eje Z para cambiar orientación lateralmente
             self.rotar('z', 90)
             accion_ejecutada = "rotar"
         
         # 4. Si chocó con pared anteriormente, rotar
         elif percepcion_actual['choco_pared']:
+            # Rotar alrededor del eje Y para cambiar la dirección de movimiento
             self.rotar('y', 90)
             accion_ejecutada = "rotar"
         
-        # 5. Acción por defecto: explorar moviéndose adelante
+        # 5. Acción por defecto: explorar moviéndose adelante según orientación
         else:
             if self.mover_adelante(entorno):
                 accion_ejecutada = "mover_adelante"
             else:
+                # Si no puede moverse adelante, rotar para buscar nueva dirección
                 self.rotar('y', 90)
                 accion_ejecutada = "rotar"
         

@@ -41,7 +41,7 @@ def simulacion_principal():
             orientacion = random.choice([(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)])
             robot = Robot(posicion, orientacion)
             entorno.agregar_entidad(robot, posicion)
-            print(f"Robot {i+1} creado en posición {posicion} con orientación {orientacion}")
+            print(f"Robot {i+1} creado en posición {posicion} - {robot.obtener_orientacion_texto()}")
     
     # Crear monstruos
     print(f"\nCreando {num_monstruos} monstruos...")
@@ -53,7 +53,7 @@ def simulacion_principal():
             print(f"Monstruo {i+1} creado en posición {posicion}")
     
     # Mostrar estado inicial
-    entorno.visualizar()
+    entorno.visualizar_compacto()
     
     # Bucle principal de simulación
     print(f"\nIniciando simulación por {max_iteraciones} iteraciones...")
@@ -76,7 +76,7 @@ def simulacion_principal():
                     monstruo.actuar(entorno, t)
             
             # Mostrar estado del mundo
-            entorno.visualizar()
+            entorno.visualizar_compacto()
             
             # Verificar condiciones de fin de juego
             if len(entorno.monstruos) == 0:

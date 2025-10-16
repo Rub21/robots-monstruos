@@ -7,6 +7,11 @@ Representa un monstruo simple con comportamiento aleatorio.
 import random
 from typing import Tuple
 
+# Códigos de colores ANSI para terminal
+class Colores:
+    RESET = '\033[0m'
+    VERDE = '\033[92m'     # Monstruos
+
 
 class Monstruo:
     """
@@ -58,4 +63,4 @@ class Monstruo:
         
         # Intentar moverse
         if entorno.mover_entidad(self, nueva_posicion):
-            print(f"Monstruo se movió de {self.posicion} a {nueva_posicion}")
+            print(f"{Colores.VERDE}Monstruo se movió de {self.posicion} a {nueva_posicion}{Colores.RESET}")
