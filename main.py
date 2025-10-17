@@ -28,6 +28,7 @@ def simulacion_principal():
     num_robots = 3
     num_monstruos = 5
     max_iteraciones = 50
+    K_monstruos = 3  # Frecuencia de movimiento de monstruos (cada K iteraciones)
     
     # Crear el entorno
     entorno = Entorno(N, p_free, p_soft)
@@ -48,7 +49,7 @@ def simulacion_principal():
     for i in range(num_monstruos):
         posicion = crear_posicion_aleatoria_libre(entorno)
         if posicion:
-            monstruo = Monstruo(posicion)
+            monstruo = Monstruo(posicion, K_monstruos)
             entorno.agregar_entidad(monstruo, posicion)
             print(f"Monstruo {i+1} creado en posición {posicion}")
     

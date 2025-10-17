@@ -18,15 +18,16 @@ class Monstruo:
     6 direcciones adyacentes posibles.
     """
     
-    def __init__(self, posicion_inicial: Tuple[int, int, int]):
+    def __init__(self, posicion_inicial: Tuple[int, int, int], K: int = 3):
         """
         Constructor del monstruo.
         
         Args:
             posicion_inicial: Tupla (x, y, z) con la posición inicial
+            K: Frecuencia de movimiento (se mueve cada K iteraciones). Por defecto 3.
         """
         self.posicion = posicion_inicial
-        self.K = 3  # Se mueve cada 3 iteraciones
+        self.K = K  # Se mueve cada K iteraciones
     
     def actuar(self, entorno, k_iteracion_actual: int):
         """

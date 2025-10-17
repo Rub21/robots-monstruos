@@ -18,7 +18,7 @@ Antes de tener robots o monstruos, necesitas un lugar donde puedan existir.
 **Paso 2: Crear al Agente Simple (La Clase Monstruo)**
 
 - **Crea una clase Monstruo:**
-    - **__init__(self, posicion_inicial):** Solo necesita saber su posición y K=3 (se mueve cada 3 iteraciones).
+    - **__init__(self, posicion_inicial, K=3):** Necesita su posición y K (frecuencia de movimiento, por defecto cada 3 iteraciones).
     - **actuar(self, entorno, k_iteracion_actual):** Este es su "cerebro".
         - Recibe el entorno para poder "ver" a su alrededor.
         - Cada K iteraciones (if k_iteracion_actual % K == 0:), el monstruo intenta moverse.

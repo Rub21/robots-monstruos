@@ -20,12 +20,13 @@ def simulacion_con_3d():
     print("Iniciando simulación...")
     
     # Parámetros de la simulación
-    N = 5  # Cubo más pequeño para mejor visualización 3D
-    p_free = 0.9  # 70% de celdas libres
-    p_soft = 0  # 20% de celdas vacías (obstáculos)
+    N = 8  # Cubo más pequeño para mejor visualización 3D
+    p_free = 0.7  # 70% de celdas libres
+    p_soft = 0.2  # 20% de celdas vacías (obstáculos)
     num_robots = 4
     num_monstruos = 4
     max_iteraciones = 20
+    K_monstruos = 3  # Frecuencia de movimiento de monstruos (cada K iteraciones)
     
     # Crear el entorno
     entorno = Entorno(N, p_free, p_soft)
@@ -49,7 +50,7 @@ def simulacion_con_3d():
     for i in range(num_monstruos):
         posicion = crear_posicion_aleatoria_libre(entorno)
         if posicion:
-            monstruo = Monstruo(posicion)
+            monstruo = Monstruo(posicion, K_monstruos)
             entorno.agregar_entidad(monstruo, posicion)
             print(f"Monstruo {i+1} creado en posición {posicion}")
     
