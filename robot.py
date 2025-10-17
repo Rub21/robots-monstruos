@@ -70,13 +70,16 @@ class Robot:
     
     def _detectar_monstruos(self, entorno) -> bool:
         """
-        Detecta si hay monstruos en las 5 celdas adyacentes (excepto atrás según orientación).
+        Detecta energía de monstruos en las 5 celdas adyacentes (excepto atrás según orientación).
+        
+        Los monstruos son entidades energéticas que irradian energía en los 6 lados.
+        El Monstroscopio detecta esta energía irradiada, no necesariamente al monstruo directamente.
         
         Args:
             entorno: Instancia del entorno
             
         Returns:
-            True si detecta un monstruo, False en caso contrario
+            True si detecta energía de monstruo, False en caso contrario
         """
         x, y, z = self.posicion
         ox, oy, oz = self.orientacion
@@ -95,10 +98,122 @@ class Robot:
         for dx, dy, dz in direcciones:
             if (dx, dy, dz) != atras:
                 nueva_pos = (x + dx, y + dy, z + dz)
-                if entorno.es_valida(nueva_pos) and entorno.obtener_estado(nueva_pos) == 3:
+                
+                # Verificar si hay energía de monstruo en esta celda
+                if self._detectar_energia_monstruo(entorno, nueva_pos):
                     return True
         
         return False
+    
+    def _detectar_energia_monstruo(self, entorno, posicion: Tuple[int, int, int]) -> bool:
+        """
+        Detecta si hay energía de monstruo en una posición específica.
+        
+        Los monstruos irradian energía en los 6 lados, por lo que:
+        1. Si hay un monstruo directamente en la celda, se detecta energía
+        2. Si hay un monstruo en cualquier celda adyacente a esta posición, 
+           también se detecta energía (por la irradiación)
+        
+        Args:
+            entorno: Instancia del entorno
+            posicion: Posición a verificar
+            
+        Returns:
+            True si detecta energía de monstruo, False en caso contrario
+        """
+        if not entorno.es_valida(posicion):
+            return False
+        
+        # 1. Verificar si hay un monstruo directamente en esta celda
+        if entorno.obtener_estado(posicion) == 3:  # Monstruo directo
+            return True
+        
+        # 2. Verificar si hay un monstruo en las celdas adyacentes a esta posición
+        # (que irradiaría energía hacia esta celda)
+        px, py, pz = posicion
+        
+        # Las 6 direcciones adyacentes para buscar monstruos que irradien energía
+        direcciones_irradiacion = [
+            (1, 0, 0), (-1, 0, 0),  # +X, -X
+            (0, 1, 0), (0, -1, 0),  # +Y, -Y
+            (0, 0, 1), (0, 0, -1)   # +Z, -Z
+        ]
+        
+        for dx, dy, dz in direcciones_irradiacion:
+            pos_monstruo = (px + dx, py + dy, pz + dz)
+            
+            # Si hay un monstruo en una celda adyacente, irradia energía hacia la posición actual
+            if (entorno.es_valida(pos_monstruo) and 
+                entorno.obtener_estado(pos_monstruo) == 3):
+                return True
+        
+        return False
+    
+    def obtener_info_deteccion_monstruos(self, entorno) -> Dict:
+        """
+        Obtiene información detallada sobre la detección de energía de monstruos.
+        
+        Args:
+            entorno: Instancia del entorno
+            
+        Returns:
+            Diccionario con información detallada de la detección
+        """
+        x, y, z = self.posicion
+        ox, oy, oz = self.orientacion
+        
+        # Calcular dirección hacia atrás según la orientación del robot
+        atras = (-ox, -oy, -oz)
+        
+        # Las 6 direcciones adyacentes en el sistema global
+        direcciones = [
+            (1, 0, 0), (-1, 0, 0),  # +X, -X
+            (0, 1, 0), (0, -1, 0),  # +Y, -Y
+            (0, 0, 1), (0, 0, -1)   # +Z, -Z
+        ]
+        
+        info_deteccion = {
+            'posicion_robot': self.posicion,
+            'orientacion_robot': self.orientacion,
+            'direccion_atras': atras,
+            'celdas_verificadas': [],
+            'energia_detectada': False,
+            'fuentes_energia': []
+        }
+        
+        # Verificar las 5 direcciones (excluyendo atrás según orientación)
+        for dx, dy, dz in direcciones:
+            if (dx, dy, dz) != atras:
+                nueva_pos = (x + dx, y + dy, z + dz)
+                
+                celda_info = {
+                    'posicion': nueva_pos,
+                    'direccion': (dx, dy, dz),
+                    'tiene_energia': False,
+                    'fuentes': []
+                }
+                
+                # Verificar si hay energía de monstruo en esta celda
+                if self._detectar_energia_monstruo(entorno, nueva_pos):
+                    celda_info['tiene_energia'] = True
+                    info_deteccion['energia_detectada'] = True
+                    
+                    # Encontrar las fuentes de energía
+                    px, py, pz = nueva_pos
+                    direcciones_irradiacion = [
+                        (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)
+                    ]
+                    
+                    for dix, diy, diz in direcciones_irradiacion:
+                        pos_monstruo = (px + dix, py + diy, pz + diz)
+                        if (entorno.es_valida(pos_monstruo) and 
+                            entorno.obtener_estado(pos_monstruo) == 3):
+                            celda_info['fuentes'].append(pos_monstruo)
+                            info_deteccion['fuentes_energia'].append(pos_monstruo)
+                
+                info_deteccion['celdas_verificadas'].append(celda_info)
+        
+        return info_deteccion
     
     def _detectar_monstruo_actual(self, entorno) -> bool:
         """
@@ -160,6 +275,7 @@ class Robot:
             print(f"{Colores.AMARILLO}Robot no pudo moverse hacia {nueva_posicion}{Colores.RESET}")
             return False
     
+    # EFECTORES: rotar, cambiar_direccion_movimiento, usar_vacuumator
     def rotar(self, eje: str, angulo: int):
         """
         Rota el robot en el eje especificado, cambiando su orientación.

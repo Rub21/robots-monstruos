@@ -20,12 +20,12 @@ def simulacion_con_3d():
     print("Iniciando simulación...")
     
     # Parámetros de la simulación
-    N = 6  # Cubo más pequeño para mejor visualización 3D
+    N = 10  # Cubo más pequeño para mejor visualización 3D
     p_free = 0.7  # 70% de celdas libres
     p_soft = 0.2  # 20% de celdas vacías (obstáculos)
-    num_robots = 2
-    num_monstruos = 3
-    max_iteraciones = 10
+    num_robots = 6
+    num_monstruos = 5
+    max_iteraciones = 20
     
     # Crear el entorno
     entorno = Entorno(N, p_free, p_soft)
