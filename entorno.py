@@ -9,14 +9,6 @@ import random
 from typing import List, Tuple, Optional
 
 # Códigos de colores ANSI para terminal
-class Colores:
-    RESET = '\033[0m'
-    ROJO = '\033[91m'      # Robots
-    VERDE = '\033[92m'     # Monstruos
-    AMARILLO = '\033[93m'  # Obstáculos
-    AZUL = '\033[94m'      # Libre
-    MAGENTA = '\033[95m'   # Títulos
-    CYAN = '\033[96m'      # Coordenadas
 
 
 class Entorno:
@@ -299,8 +291,8 @@ class Entorno:
         if capa is None:
             capa = self.N // 2
         
-        print(f"\n{Colores.MAGENTA}=== VISUALIZACIÓN COMPACTA 3D (Capa {capa}) ==={Colores.RESET}")
-        print(f"{Colores.AZUL}.{Colores.RESET} = libre, {Colores.AMARILLO}#{Colores.RESET} = vacía (obstáculo), {Colores.ROJO}R{Colores.RESET} = robot, {Colores.VERDE}M{Colores.RESET} = monstruo")
+        print(f"\n=== VISUALIZACIÓN COMPACTA 3D (Capa {capa}) ===")
+        print(". = libre, # = vacía (obstáculo), R = robot, M = monstruo")
         print()
         
         # Preparar las tres vistas
@@ -309,7 +301,7 @@ class Entorno:
         vista_yz = self._preparar_vista_yz(capa)
         
         # Mostrar encabezados
-        print(f"{Colores.CYAN}VISTA XY (Frontal){Colores.RESET}    {Colores.CYAN}VISTA XZ (Lateral){Colores.RESET}    {Colores.CYAN}VISTA YZ (Superior){Colores.RESET}")
+        print("VISTA XY (Frontal)    VISTA XZ (Lateral)    VISTA YZ (Superior)")
         print("=" * 60)
         
         # Mostrar las vistas lado a lado
@@ -320,7 +312,7 @@ class Entorno:
             
             print(f"{linea_xy:<20} {linea_xz:<20} {linea_yz}")
         
-        print(f"\n{Colores.ROJO}Robots activos: {len(self.robots)}{Colores.RESET} | {Colores.VERDE}Monstruos activos: {len(self.monstruos)}{Colores.RESET}")
+        print(f"\nRobots activos: {len(self.robots)} | Monstruos activos: {len(self.monstruos)}")
         print("=" * 60)
     
     def _preparar_vista_xy(self, capa_z: int):
@@ -329,25 +321,24 @@ class Entorno:
         """
         lineas = []
         # Encabezado de coordenadas Y
-        encabezado = f"{Colores.CYAN}   "
+        encabezado = "   "
         for y in range(self.N):
             encabezado += f"{y:2}"
-        encabezado += f"{Colores.RESET}"
         lineas.append(encabezado)
         
         # Filas
         for x in range(self.N):
-            linea = f"{Colores.CYAN}{x:2}{Colores.RESET} "
+            linea = f"{x:2} "
             for y in range(self.N):
                 estado = self.mundo[x, y, capa_z]
                 if estado == 0:
-                    linea += f"{Colores.AZUL} .{Colores.RESET}"
+                    linea += " ."
                 elif estado == 1:
-                    linea += f"{Colores.AMARILLO} #{Colores.RESET}"
+                    linea += " #"
                 elif estado == 2:
-                    linea += f"{Colores.ROJO} R{Colores.RESET}"
+                    linea += " R"
                 elif estado == 3:
-                    linea += f"{Colores.VERDE} M{Colores.RESET}"
+                    linea += " M"
             lineas.append(linea)
         
         return lineas
@@ -358,25 +349,24 @@ class Entorno:
         """
         lineas = []
         # Encabezado de coordenadas Z
-        encabezado = f"{Colores.CYAN}   "
+        encabezado = "   "
         for z in range(self.N):
             encabezado += f"{z:2}"
-        encabezado += f"{Colores.RESET}"
         lineas.append(encabezado)
         
         # Filas
         for x in range(self.N):
-            linea = f"{Colores.CYAN}{x:2}{Colores.RESET} "
+            linea = f"{x:2} "
             for z in range(self.N):
                 estado = self.mundo[x, capa_y, z]
                 if estado == 0:
-                    linea += f"{Colores.AZUL} .{Colores.RESET}"
+                    linea += " ."
                 elif estado == 1:
-                    linea += f"{Colores.AMARILLO} #{Colores.RESET}"
+                    linea += " #"
                 elif estado == 2:
-                    linea += f"{Colores.ROJO} R{Colores.RESET}"
+                    linea += " R"
                 elif estado == 3:
-                    linea += f"{Colores.VERDE} M{Colores.RESET}"
+                    linea += " M"
             lineas.append(linea)
         
         return lineas
@@ -387,25 +377,24 @@ class Entorno:
         """
         lineas = []
         # Encabezado de coordenadas Z
-        encabezado = f"{Colores.CYAN}   "
+        encabezado = "   "
         for z in range(self.N):
             encabezado += f"{z:2}"
-        encabezado += f"{Colores.RESET}"
         lineas.append(encabezado)
         
         # Filas
         for y in range(self.N):
-            linea = f"{Colores.CYAN}{y:2}{Colores.RESET} "
+            linea = f"{y:2} "
             for z in range(self.N):
                 estado = self.mundo[capa_x, y, z]
                 if estado == 0:
-                    linea += f"{Colores.AZUL} .{Colores.RESET}"
+                    linea += " ."
                 elif estado == 1:
-                    linea += f"{Colores.AMARILLO} #{Colores.RESET}"
+                    linea += " #"
                 elif estado == 2:
-                    linea += f"{Colores.ROJO} R{Colores.RESET}"
+                    linea += " R"
                 elif estado == 3:
-                    linea += f"{Colores.VERDE} M{Colores.RESET}"
+                    linea += " M"
             lineas.append(linea)
         
         return lineas

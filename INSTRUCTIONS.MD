@@ -67,8 +67,3 @@ Este es el script que une todo.
     - Actualiza el estado del entorno (por ejemplo, elimina robots y monstruos destruidos de las listas).
     - Llama a entorno.visualizar() para ver qué pasó en esa iteración.
     - time.sleep(1) para que la simulación corra a 1 segundo por iteración.
-
-Con este plan, puedes ir desarrollando y probando cada parte de forma independiente. ¡Mucho éxito con el examen
-Credits Used: 32.72
-
-
