@@ -67,6 +67,9 @@ class Visualizador3D:
         # Actualizar título
         self.ax.set_title(f'Iteración {iteracion} - Robots: {len(entorno.robots)}, Monstruos: {len(entorno.monstruos)}')
         
+        # Agregar leyenda
+        self._agregar_leyenda()
+        
         # Configurar vista
         self.ax.view_init(elev=20, azim=45)
         
@@ -123,7 +126,7 @@ class Visualizador3D:
         
         # Dibujar obstáculos como cubos pequeños
         for x, y, z in obstaculos:
-            self._dibujar_cubo_pequeno(x, y, z, color='yellow', alpha=0.7)
+            self._dibujar_cubo_pequeno(x, y, z, color='gray', alpha=0.7)
     
     def _dibujar_robots(self, entorno):
         """
@@ -142,15 +145,66 @@ class Visualizador3D:
     
     def _dibujar_monstruos(self, entorno):
         """
-        Dibuja los monstruos como cubos verdes.
+        Dibuja los monstruos y su energía irradiada.
+        
+        Los monstruos son entidades energéticas que irradian energía en los 6 lados.
+        Se muestra el monstruo en verde intenso y su energía irradiada en verde suave.
         
         Args:
             entorno: Instancia del entorno
         """
         for monstruo in entorno.monstruos:
             x, y, z = monstruo.posicion
-            # Dibujar el monstruo como un cubo verde
-            self._dibujar_cubo_pequeno(x, y, z, color='green', alpha=0.8)
+            
+            # 1. Dibujar la energía irradiada en verde suave (6 lados)
+            self._dibujar_energia_irradiada(x, y, z, entorno.N)
+            
+            # 2. Dibujar el monstruo como un cubo verde intenso
+            self._dibujar_cubo_pequeno(x, y, z, color='darkgreen', alpha=0.9)
+    
+    def _dibujar_energia_irradiada(self, x: int, y: int, z: int, N: int):
+        """
+        Dibuja la energía irradiada por un monstruo en los 6 lados.
+        
+        Los monstruos irradian energía en las direcciones:
+        +X, -X, +Y, -Y, +Z, -Z
+        
+        Args:
+            x, y, z: Posición del monstruo
+            N: Tamaño del entorno
+        """
+        # Las 6 direcciones donde se irradia energía
+        direcciones = [
+            (1, 0, 0), (-1, 0, 0),  # +X, -X
+            (0, 1, 0), (0, -1, 0),  # +Y, -Y
+            (0, 0, 1), (0, 0, -1)   # +Z, -Z
+        ]
+        
+        for dx, dy, dz in direcciones:
+            nx, ny, nz = x + dx, y + dy, z + dz
+            
+            # Solo dibujar si la posición está dentro del entorno
+            if 0 <= nx < N and 0 <= ny < N and 0 <= nz < N:
+                # Dibujar energía irradiada en verde suave
+                self._dibujar_cubo_pequeno(nx, ny, nz, color='lightgreen', alpha=0.3)
+    
+    def _agregar_leyenda(self):
+        """
+        Agrega una leyenda explicativa al gráfico 3D.
+        """
+        # Crear elementos para la leyenda
+        from matplotlib.patches import Patch
+        
+        elementos_leyenda = [
+            Patch(facecolor='red', alpha=0.8, label='🤖 Robot'),
+            Patch(facecolor='darkgreen', alpha=0.9, label='👹 Monstruo'),
+            Patch(facecolor='lightgreen', alpha=0.3, label='⚡ Energía Irradiada'),
+            Patch(facecolor='gray', alpha=0.5, label='⬛ Zona Vacía (obstáculo - NO transitable)'),
+            Patch(facecolor='lightblue', alpha=0.2, label='🔵 Zona Libre (transitable)')
+        ]
+        
+        # Agregar leyenda al gráfico
+        self.ax.legend(handles=elementos_leyenda, loc='upper left', bbox_to_anchor=(0, 1))
     
     def _dibujar_cubo_pequeno(self, x: int, y: int, z: int, color: str = 'blue', alpha: float = 0.5):
         """

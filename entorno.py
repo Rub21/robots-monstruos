@@ -202,7 +202,7 @@ class Entorno:
             capa = self.N // 2
         
         print(f"\n=== VISUALIZACIÓN DEL MUNDO 3D (Capa {capa}) ===")
-        print("Leyenda: . = libre, # = vacía, R = robot, M = monstruo")
+        print("Leyenda: . = libre, # = vacía (obstáculo), R = robot, M = monstruo")
         print()
         
         # Mostrar tres vistas del cubo: XY (cara frontal), XZ (cara lateral), YZ (cara superior)
@@ -300,7 +300,7 @@ class Entorno:
             capa = self.N // 2
         
         print(f"\n{Colores.MAGENTA}=== VISUALIZACIÓN COMPACTA 3D (Capa {capa}) ==={Colores.RESET}")
-        print(f"{Colores.AZUL}.{Colores.RESET} = libre, {Colores.AMARILLO}#{Colores.RESET} = vacía, {Colores.ROJO}R{Colores.RESET} = robot, {Colores.VERDE}M{Colores.RESET} = monstruo")
+        print(f"{Colores.AZUL}.{Colores.RESET} = libre, {Colores.AMARILLO}#{Colores.RESET} = vacía (obstáculo), {Colores.ROJO}R{Colores.RESET} = robot, {Colores.VERDE}M{Colores.RESET} = monstruo")
         print()
         
         # Preparar las tres vistas
