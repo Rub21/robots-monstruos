@@ -6,14 +6,6 @@ Representa un robot inteligente con sensores, effectores y memoria.
 
 from typing import List, Tuple, Dict
 
-# Códigos de colores ANSI para terminal
-class Colores:
-    RESET = '\033[0m'
-    ROJO = '\033[91m'      # Robots
-    AMARILLO = '\033[93m'  # Advertencias
-    CYAN = '\033[96m'      # Información
-
-
 class Robot:
     """
     Clase que representa un robot inteligente con sensores, effectores y memoria.
@@ -37,6 +29,7 @@ class Robot:
         self.direccion_movimiento = orientacion_inicial  # Dirección de movimiento actual
         self.memoria: List[Tuple[int, Dict, str]] = []  # (tiempo, percepción, acción)
         self.choco_pared_anterior = False  # Para el Vacuscopio
+        self.destruido = False  # Estado de destrucción del robot
         
     def percibir_entorno(self, entorno) -> Dict:
         """
@@ -149,6 +142,181 @@ class Robot:
         
         return False
     
+    def _perseguir_monstruo_cercano(self, entorno) -> bool:
+        """
+        Intenta perseguir al monstruo más cercano detectado.
+        
+        Calcula la dirección hacia el monstruo más cercano y se mueve hacia él.
+        Si no puede moverse directamente, intenta reorientarse.
+        
+        Args:
+            entorno: Instancia del entorno
+            
+        Returns:
+            True si se movió exitosamente, False en caso contrario
+        """
+        # Encontrar el monstruo más cercano
+        monstruo_cercano = self._encontrar_monstruo_cercano(entorno)
+        if not monstruo_cercano:
+            return False
+        
+        # Calcular dirección hacia el monstruo
+        direccion_hacia_monstruo = self._calcular_direccion_hacia(monstruo_cercano.posicion)
+        
+        # Intentar moverse en esa dirección
+        if self._intentar_moverse_en_direccion(entorno, direccion_hacia_monstruo):
+            return True
+        
+        # Si no puede moverse directamente, intentar reorientarse hacia el monstruo
+        if self._reorientarse_hacia_monstruo(entorno, monstruo_cercano.posicion):
+            return True
+        
+        return False
+    
+    def _encontrar_monstruo_cercano(self, entorno):
+        """
+        Encuentra el monstruo más cercano al robot.
+        
+        Args:
+            entorno: Instancia del entorno
+            
+        Returns:
+            El monstruo más cercano o None si no hay ninguno
+        """
+        if not entorno.monstruos:
+            return None
+        
+        robot_pos = self.posicion
+        monstruo_cercano = None
+        distancia_minima = float('inf')
+        
+        for monstruo in entorno.monstruos:
+            # Calcular distancia Manhattan
+            distancia = sum(abs(a - b) for a, b in zip(robot_pos, monstruo.posicion))
+            if distancia < distancia_minima:
+                distancia_minima = distancia
+                monstruo_cercano = monstruo
+        
+        return monstruo_cercano
+    
+    def _calcular_direccion_hacia(self, posicion_destino: Tuple[int, int, int]) -> Tuple[int, int, int]:
+        """
+        Calcula la dirección hacia una posición específica.
+        
+        Args:
+            posicion_destino: Posición objetivo
+            
+        Returns:
+            Vector de dirección normalizado
+        """
+        robot_pos = self.posicion
+        direccion = tuple(dest - orig for dest, orig in zip(posicion_destino, robot_pos))
+        
+        # Normalizar la dirección (mantener solo la dirección principal)
+        direccion_normalizada = [0, 0, 0]
+        max_abs = max(abs(d) for d in direccion)
+        
+        if max_abs > 0:
+            for i, d in enumerate(direccion):
+                if abs(d) == max_abs:
+                    direccion_normalizada[i] = 1 if d > 0 else -1
+                    break
+        
+        return tuple(direccion_normalizada)
+    
+    def _intentar_moverse_en_direccion(self, entorno, direccion: Tuple[int, int, int]) -> bool:
+        """
+        Intenta moverse en una dirección específica.
+        
+        Args:
+            entorno: Instancia del entorno
+            direccion: Dirección de movimiento
+            
+        Returns:
+            True si se movió exitosamente, False en caso contrario
+        """
+        nueva_posicion = tuple(self.posicion[i] + direccion[i] for i in range(3))
+        
+        if entorno.es_valida(nueva_posicion):
+            estado_celda = entorno.obtener_estado(nueva_posicion)
+            
+            # Puede moverse a celdas libres (0) o con monstruos (3)
+            if estado_celda == 0 or estado_celda == 3:
+                # Actualizar posición del robot
+                self.posicion = nueva_posicion
+                entorno.mover_entidad(self, nueva_posicion)
+                return True
+        
+        return False
+    
+    def _reorientarse_hacia_monstruo(self, entorno, posicion_monstruo: Tuple[int, int, int]) -> bool:
+        """
+        Reorienta el robot hacia la posición del monstruo.
+        
+        Args:
+            entorno: Instancia del entorno
+            posicion_monstruo: Posición del monstruo
+            
+        Returns:
+            True si se reorientó exitosamente, False en caso contrario
+        """
+        direccion_hacia_monstruo = self._calcular_direccion_hacia(posicion_monstruo)
+        
+        # Si ya está orientado hacia el monstruo, no hacer nada
+        if self.orientacion == direccion_hacia_monstruo:
+            return False
+        
+        # Reorientar hacia el monstruo
+        self.orientacion = direccion_hacia_monstruo
+        self.direccion_movimiento = direccion_hacia_monstruo
+        
+        print(f"   🔄 Reorientando hacia monstruo en {posicion_monstruo}")
+        return True
+    
+    def _validar_activacion_vacuumator(self, entorno) -> bool:
+        """
+        Valida que sea seguro activar el Vacuumator.
+        
+        Validaciones de seguridad:
+        1. Debe haber un monstruo en la celda actual (confirmado por Energómetro espectral)
+        2. El robot no debe estar ya destruido
+        3. La celda debe ser válida
+        
+        Args:
+            entorno: Instancia del entorno
+            
+        Returns:
+            True si es seguro activar el Vacuumator, False en caso contrario
+        """
+        # Validación 1: Robot no debe estar destruido
+        if hasattr(self, 'destruido') and self.destruido:
+            print(f"⚠️  VALIDACIÓN FALLIDA: Robot ya está destruido")
+            return False
+        
+        # Validación 2: Debe haber un monstruo en la celda actual
+        if not self._detectar_monstruo_actual(entorno):
+            print(f"⚠️  VALIDACIÓN FALLIDA: No hay monstruo en la celda actual")
+            return False
+        
+        # Validación 3: La posición debe ser válida
+        if not entorno.es_valida(self.posicion):
+            print(f"⚠️  VALIDACIÓN FALLIDA: Posición inválida")
+            return False
+        
+        # Validación 4: Confirmar que el monstruo existe en la lista de monstruos
+        monstruo_encontrado = False
+        for monstruo in entorno.monstruos:
+            if monstruo.posicion == self.posicion:
+                monstruo_encontrado = True
+                break
+        
+        if not monstruo_encontrado:
+            print(f"⚠️  VALIDACIÓN FALLIDA: Monstruo no encontrado en lista de entidades")
+            return False
+        
+        print(f"✅ VALIDACIONES DE SEGURIDAD COMPLETADAS")
+        return True
+    
     def obtener_info_deteccion_monstruos(self, entorno) -> Dict:
         """
         Obtiene información detallada sobre la detección de energía de monstruos.
@@ -217,7 +385,11 @@ class Robot:
     
     def _detectar_monstruo_actual(self, entorno) -> bool:
         """
-        Detecta si hay un monstruo en la celda actual.
+        Energómetro espectral: Detecta si hay un monstruo en la celda actual.
+        
+        Este sensor es crucial para la destrucción de monstruos. Solo se activa
+        cuando el robot está en la misma celda que el monstruo, permitiendo
+        la activación segura del Vacuumator.
         
         Args:
             entorno: Instancia del entorno
@@ -225,7 +397,13 @@ class Robot:
         Returns:
             True si hay un monstruo en la celda actual, False en caso contrario
         """
-        return entorno.obtener_estado(self.posicion) == 3
+        estado_celda = entorno.obtener_estado(self.posicion)
+        hay_monstruo = estado_celda == 3
+        
+        if hay_monstruo:
+            print(f"🔬 Energómetro espectral: ¡MONSTRUO DETECTADO EN CELDA ACTUAL!")
+        
+        return hay_monstruo
     
     def _detectar_robot_enfrente(self, entorno) -> bool:
         """
@@ -267,12 +445,12 @@ class Robot:
         # Intentar moverse
         if entorno.mover_entidad(self, nueva_posicion):
             self.choco_pared_anterior = False
-            print(f"{Colores.ROJO}Robot se movió de {self.posicion} a {nueva_posicion}{Colores.RESET}")
+            print(f"Robot se movió de {self.posicion} a {nueva_posicion}")
             return True
         else:
             # No se pudo mover, activar Vacuscopio
             self.choco_pared_anterior = True
-            print(f"{Colores.AMARILLO}Robot no pudo moverse hacia {nueva_posicion}{Colores.RESET}")
+            print(f"Robot no pudo moverse hacia {nueva_posicion}")
             return False
     
     # EFECTORES: rotar, cambiar_direccion_movimiento, usar_vacuumator
@@ -312,7 +490,7 @@ class Robot:
         # Actualizar también la dirección de movimiento para que coincida con la orientación
         self.direccion_movimiento = self.orientacion
         
-        print(f"{Colores.CYAN}Robot rotó en eje {eje} {angulo}°. Nueva orientación: {self.orientacion}{Colores.RESET}")
+        print(f"Robot rotó en eje {eje} {angulo}°. Nueva orientación: {self.orientacion}")
     
     def cambiar_direccion_movimiento(self, nueva_direccion: Tuple[int, int, int]):
         """
@@ -322,7 +500,7 @@ class Robot:
             nueva_direccion: Nueva dirección de movimiento (x, y, z)
         """
         self.direccion_movimiento = nueva_direccion
-        print(f"{Colores.CYAN}Robot cambió dirección de movimiento a: {nueva_direccion}{Colores.RESET}")
+        print(f"Robot cambió dirección de movimiento a: {nueva_direccion}")
     
     def obtener_orientacion_texto(self) -> str:
         """
@@ -350,25 +528,56 @@ class Robot:
     
     def usar_vacuumator(self, entorno):
         """
-        Usa el vacuumator para destruir el monstruo en la celda actual y autodestruirse.
+        Vacuumator: Poderosa arma de destrucción que convierte la zona en Zona Vacía.
+        
+        Proceso de destrucción:
+        1. Validaciones de seguridad
+        2. Destruye completamente al monstruo en la celda actual
+        3. Destruye completamente al robot (autodestrucción)
+        4. Convierte la celda en Zona Vacía (obstáculo)
         
         Args:
             entorno: Instancia del entorno
+            
+        Returns:
+            True si la destrucción fue exitosa, False si falló la validación
         """
+        # VALIDACIONES DE SEGURIDAD
+        if not self._validar_activacion_vacuumator(entorno):
+            print(f"🚫 VACUUMATOR NO ACTIVADO: Validaciones de seguridad fallaron")
+            return False
+        
         x, y, z = self.posicion
         
-        # Cambiar la celda actual a zona vacía
+        print(f"💥 VACUUMATOR ACTIVADO!")
+        print(f"   🔥 Destruyendo monstruo en posición {self.posicion}")
+        print(f"   🤖 Autodestrucción del robot iniciada")
+        print(f"   ⚫ Convirtiendo celda en Zona Vacía")
+        
+        # 1. Destruir monstruo (si existe en la celda)
+        monstruo_encontrado = None
+        for monstruo in entorno.monstruos:
+            if monstruo.posicion == self.posicion:
+                monstruo_encontrado = monstruo
+                break
+        
+        if monstruo_encontrado:
+            entorno.monstruos.remove(monstruo_encontrado)
+            print(f"   👹 Monstruo eliminado del entorno")
+        
+        # 2. Destruir robot (autodestrucción)
+        if self in entorno.robots:
+            entorno.robots.remove(self)
+            print(f"   🤖 Robot eliminado del entorno")
+        
+        # 3. Convertir celda en Zona Vacía (obstáculo)
         entorno.mundo[x, y, z] = 1
         
-        # Eliminar monstruos en la misma celda
-        monstruos_a_eliminar = [m for m in entorno.monstruos if m.posicion == self.posicion]
-        for monstruo in monstruos_a_eliminar:
-            entorno.eliminar_entidad(monstruo)
+        # 4. Marcar robot como destruido
+        self.destruido = True
         
-        # Autodestruirse
-        entorno.eliminar_entidad(self)
-        
-        print(f"{Colores.ROJO}Robot usó vacuumator en {self.posicion} y se autodestruyó{Colores.RESET}")
+        print(f"💀 MISIÓN CUMPLIDA: Monstruo y robot destruidos en {self.posicion}")
+        return True
     
     def decidir_y_actuar(self, entorno, tiempo_actual: int):
         """
@@ -381,39 +590,74 @@ class Robot:
         # Obtener percepciones actuales
         percepcion_actual = self.percibir_entorno(entorno)
         
-        # Lógica de decisión con jerarquía de reglas
+        # ========================================================================
+        # LÓGICA DE DECISIÓN CON TRES MODOS DE OPERACIÓN DEL ROBOT
+        # ========================================================================
         accion_ejecutada = None
         
-        # 1. Máxima prioridad: Si hay monstruo en celda actual, usar vacuumator
+        # ========================================================================
+        # MODO ATAQUE: Máxima prioridad - Destrucción de monstruos
+        # ========================================================================
+        # Cuando el robot entra en el mismo cubo que un monstruo:
+        # 1. Se detiene el movimiento
+        # 2. Confirma con el Energómetro espectral
+        # 3. Activa el Vacuumator para autodestruirse y eliminar al monstruo
         if percepcion_actual['monstruo_actual']:
+            print(f"💥 MODO ATAQUE ACTIVADO:")
+            print(f"   ✅ Paso 1: INGRESAR al cubo del monstruo - COMPLETADO")
+            print(f"   ✅ Paso 2: DETECTAR con Energómetro espectral - COMPLETADO")
+            print(f"   🚀 Paso 3: ACTIVAR Vacuumator - INICIANDO")
+            
             self.usar_vacuumator(entorno)
             accion_ejecutada = "vacuumator"
         
-        # 2. Si detecta monstruo cerca, intentar acercarse
+        # ========================================================================
+        # MODO CAZA: Alta prioridad - Persecución de monstruos
+        # ========================================================================
+        # Cuando el Monstroscopio detecta energía en cubos adyacentes:
+        # 1. Cambia su movimiento para dirigirse intencionalmente hacia esa fuente
+        # 2. Navega activamente hacia el monstruo
+        # 3. Se reorienta si encuentra obstáculos
         elif percepcion_actual['monstruo_cerca']:
-            # Intentar moverse hacia adelante según su orientación
-            if self.mover_adelante(entorno):
-                accion_ejecutada = "mover_adelante"
+            print(f"🎯 MODO CAZA ACTIVADO:")
+            print(f"   🚀 Dirigiendo hacia fuente de energía detectada")
+            
+            # Intentar perseguir al monstruo más cercano
+            if self._perseguir_monstruo_cercano(entorno):
+                accion_ejecutada = "perseguir_monstruo"
+                print(f"   📍 Persiguiendo monstruo")
             else:
                 # Si no puede moverse, rotar para buscar otra dirección
-                # Rotar alrededor del eje Y para cambiar de dirección de movimiento
+                print(f"   🔄 Obstáculo detectado, reorientando")
                 self.rotar('y', 90)
                 accion_ejecutada = "rotar"
         
-        # 3. Si hay robot enfrente, comunicarse y decidir conjuntamente
+        # ========================================================================
+        # COMPORTAMIENTOS AUXILIARES: Evitar conflictos y obstáculos
+        # ========================================================================
+        # Si hay robot enfrente, comunicarse y decidir conjuntamente
         elif percepcion_actual['robot_enfrente']:
             # Lógica simple: rotar alrededor del eje Z para cambiar orientación lateralmente
             self.rotar('z', 90)
             accion_ejecutada = "rotar"
         
-        # 4. Si chocó con pared anteriormente, rotar
+        # Si chocó con pared anteriormente, rotar
         elif percepcion_actual['choco_pared']:
             # Rotar alrededor del eje Y para cambiar la dirección de movimiento
             self.rotar('y', 90)
             accion_ejecutada = "rotar"
         
-        # 5. Acción por defecto: explorar moviéndose adelante según orientación
+        # ========================================================================
+        # MODO EXPLORACIÓN: Acción por defecto - Búsqueda activa
+        # ========================================================================
+        # Cuando el robot no detecta energía de monstruo en su entorno inmediato:
+        # 1. Se mueve por el mapa siguiendo un patrón sistemático
+        # 2. Avanza hacia adelante según su orientación
+        # 3. Rota cuando encuentra obstáculos para buscar nuevas direcciones
         else:
+            print(f"🔍 MODO EXPLORACIÓN ACTIVADO:")
+            print(f"   🗺️ Explorando mapa en busca de monstruos")
+            
             if self.mover_adelante(entorno):
                 accion_ejecutada = "mover_adelante"
             else:

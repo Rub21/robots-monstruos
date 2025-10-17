@@ -9,7 +9,7 @@ import time
 from entorno import Entorno, crear_posicion_aleatoria_libre
 from monstruo import Monstruo
 from robot import Robot
-from visualizador_3d import crear_visualizador_3d
+from visualizador_3d import Visualizador3D
 
 
 def simulacion_con_3d():
@@ -20,11 +20,11 @@ def simulacion_con_3d():
     print("Iniciando simulación...")
     
     # Parámetros de la simulación
-    N = 10  # Cubo más pequeño para mejor visualización 3D
-    p_free = 0.7  # 70% de celdas libres
-    p_soft = 0.2  # 20% de celdas vacías (obstáculos)
-    num_robots = 6
-    num_monstruos = 5
+    N = 5  # Cubo más pequeño para mejor visualización 3D
+    p_free = 0.9  # 70% de celdas libres
+    p_soft = 0  # 20% de celdas vacías (obstáculos)
+    num_robots = 4
+    num_monstruos = 4
     max_iteraciones = 20
     
     # Crear el entorno
@@ -32,7 +32,7 @@ def simulacion_con_3d():
     print(f"Entorno creado: {N}x{N}x{N} con {p_free*100}% libres y {p_soft*100}% vacías")
     
     # Crear el visualizador 3D
-    visualizador = crear_visualizador_3d()
+    visualizador = Visualizador3D()
     
     # Crear robots
     print(f"\nCreando {num_robots} robots...")
@@ -54,7 +54,15 @@ def simulacion_con_3d():
             print(f"Monstruo {i+1} creado en posición {posicion}")
     
     # Mostrar estadísticas iniciales
-    visualizador.mostrar_estadisticas(entorno)
+    print(f"\n📊 ESTADÍSTICAS INICIALES:")
+    print(f"   Robots: {len(entorno.robots)}")
+    print(f"   Monstruos: {len(entorno.monstruos)}")
+    
+    # Contar celdas manualmente
+    libres = sum(1 for x in range(entorno.N) for y in range(entorno.N) for z in range(entorno.N) if entorno.mundo[x, y, z] == 0)
+    vacias = sum(1 for x in range(entorno.N) for y in range(entorno.N) for z in range(entorno.N) if entorno.mundo[x, y, z] == 1)
+    print(f"   Zonas libres: {libres}")
+    print(f"   Zonas vacías: {vacias}")
     
     # Mostrar estado inicial en 3D
     visualizador.visualizar_mundo(entorno, 0)
@@ -111,7 +119,6 @@ def simulacion_con_3d():
     # Mantener la ventana abierta
     print("\nPresiona Enter para cerrar la visualización 3D...")
     input()
-    visualizador.cerrar()
 
 
 if __name__ == "__main__":
